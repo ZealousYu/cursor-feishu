@@ -1,0 +1,8 @@
+.env
+.npm-cache-clean/
+node_modules/
+.node
+.node/
+vendor/lark-mcp
+vendor/lark-mcp/
+feishu-integration/node_modules/
