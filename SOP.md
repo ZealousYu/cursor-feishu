@@ -1,48 +1,62 @@
-# 芙芙小助手驯养指南 — 新电脑完整安装 SOP
+# 芙芙小助手驯养指南（飞书 × Cursor 全能力 SOP）
 
-> **代码仓库（GitHub）**：<GITHUB_REPO_URL>（推送后替换为实际地址）  
-> **本文档（飞书）**：https://rcnimfkpyebd.feishu.cn/wiki/DiOlwipeiiWKCgkmWOwcNKOAnGf  
-> **Agent 路由 Skill**：仓库内 `.cursor/skills/feishu-cursor-integration/SKILL.md`
+> **代码仓库**：https://github.com/PLACEHOLDER/cursor-feishu  
+> **适用场景**：在新电脑上从零配置「飞书文档 / 多维表格 / Block 编辑 + Cursor Agent」  
+> **最后更新**：2026-08-28
 
 ---
 
 ## 一、芙芙能干什么？
 
-连接 **飞书** 与 **Cursor Agent**，实现：
+连接飞书与 Cursor，让 Agent **以你的身份**直接：
 
-| 能力 | 工具 |
+| 能力 | 说明 |
 |------|------|
-| 快速读/写 wiki、docx（Markdown） | MCP `lark-doc` |
-| 多维表格 CRUD、wiki 移动、docx block API | MCP `lark-official` |
-| 文档内嵌入表格 / block 精细编辑 | **Lark CLI** |
-| 日历、消息、云盘搜索等 | **Lark CLI** |
+| 读/写云文档、wiki | Markdown 级快速读写 |
+| 多维表格 CRUD | 查/增/改记录 |
+| **文档内嵌入表格** | 读 sheet、block 级精细编辑 |
+| 移动 wiki 目录 | 把文档挪到指定文件夹下 |
+| 日历 / 消息 / 云盘 | 通过 Lark CLI 扩展 |
 
-Agent 会根据任务自动选择 MCP 或 CLI（见文末「Agent 怎么说」）。
+**三套引擎并存**（Agent 会自动选，见文末「路由规则」）：
+
+1. **MCP `lark-doc`** — 快速 Markdown 读写  
+2. **MCP `lark-official`** — 多维表格、wiki 移动、block API  
+3. **Lark CLI** — 嵌入 sheet、block_replace、日历/IM 等  
 
 ---
 
-## 二、新电脑前置条件
+## 二、新电脑安装（约 30 分钟）
 
-- macOS（本文以 Mac 为例；Linux 同理改路径即可）
-- 可访问 [飞书开放平台](https://open.feishu.cn/app)
+### 0. 前置条件
+
+- macOS（本文以 Mac 为例；Windows 需自行调整路径）
+- 能访问 [飞书开放平台](https://open.feishu.cn/app)
 - 已安装 [Cursor](https://cursor.com)
-- 已安装 Git（`git --version`）
-- （可选）GitHub CLI：`brew install gh && gh auth login`
+- 已安装 **git**（`git --version` 可用）
 
----
+### 1. 克隆代码
 
-## 三、一次性：飞书开发者后台
+```bash
+git clone https://github.com/PLACEHOLDER/cursor-feishu.git
+cd cursor-feishu
+```
 
-> 若已有自建应用且权限配齐，可跳过至第四节。
+若放在更大 monorepo 里，确保路径例如：`~/Projects/cursor-feishu`。
 
-### 3.1 创建应用
+### 2. 一键安装依赖
 
-1. 打开 https://open.feishu.cn/app → **创建企业自建应用**
-2. **凭证与基础信息** 复制 **App ID**、**App Secret**
+```bash
+./setup.sh
+```
 
-### 3.2 开通权限
+会自动：便携 Node.js、lovelts/lark-mcp、官方 MCP、Lark CLI、写入 `~/.cursor/mcp.json`。
 
-**权限管理 → 开通权限**，用户身份 + 应用身份各开一遍：
+### 3. 飞书开发者后台（只做一次，换电脑不用重做）
+
+打开 [飞书开发者后台](https://open.feishu.cn/app) → 你的自建应用。
+
+#### 3.1 权限（用户身份 + 应用身份各开一遍）
 
 ```
 im:chat:create, im:chat, im:message, wiki:wiki, wiki:wiki:readonly,
@@ -50,162 +64,155 @@ docx:document, bitable:app, drive:drive, docs:document:import,
 contact:user.id:readonly, search:docs:read
 ```
 
-### 3.3 OAuth 重定向 URL
-
-**安全设置 → 重定向 URL**，添加：
+#### 3.2 OAuth 重定向 URL（安全设置 → 重定向 URL）
 
 | URL | 用途 |
 |-----|------|
 | `http://localhost:9997/oauth/callback` | lark-doc MCP |
-| `http://localhost:3000/callback` | lark-official MCP |
-| `http://localhost:3000/callback?redirect_uri=http://localhost:3000/callback` | lark-official（**必填**） |
+| `http://localhost:3000/callback` | 官方 MCP |
+| `http://localhost:3000/callback?redirect_uri=http://localhost:3000/callback` | 官方 MCP（**必填**） |
 
-开启 **刷新 user_access_token**（若有该选项）。
+开启 **刷新 user_access_token**。改权限后需重新发布应用。
 
-### 3.4 发布应用
-
-**版本管理与发布** → 创建版本 → 提交审核 → 管理员通过。
-
----
-
-## 四、新电脑：克隆代码并安装
-
-### 4.1 克隆 GitHub 仓库
-
-```bash
-git clone <GITHUB_REPO_URL>.git
-cd cursor-feishu
-```
-
-> 若仓库为私有，使用 SSH：`git clone git@github.com:<user>/cursor-feishu.git`
-
-### 4.2 一键安装依赖
-
-```bash
-chmod +x setup.sh scripts/*.sh
-./setup.sh
-```
-
-安装内容：便携 Node.js、lovelts/lark-mcp、官方 MCP、Lark CLI、写入 `~/.cursor/mcp.json`。
-
-### 4.3 填写凭证
+### 4. 填写本地凭证
 
 ```bash
 cp .env.example .env
-# 编辑 .env，填入 LARK_APP_ID 和 LARK_APP_SECRET
-# 国内务必保留：LARK_OPEN_DOMAIN=https://open.feishu.cn
+# 编辑 .env，填入 LARK_APP_ID、LARK_APP_SECRET
+# 必须保留：LARK_OPEN_DOMAIN=https://open.feishu.cn
 ```
 
-### 4.4 OAuth 授权（每台电脑各做一次）
+### 5. OAuth 授权（每台新电脑各做一次）
 
 ```bash
-./scripts/login-official.sh          # MCP 官方（浏览器授权，等 Successfully logged in）
-./scripts/configure-lark-cli.sh      # 绑定同一 App
-./scripts/login-lark-cli.sh          # Lark CLI（钥匙串持久化）
-./scripts/install-lark-cli-skills.sh # Agent Skills（lark-doc/block 等）
-./scripts/install-project-skill.sh   # 安装 MCP/CLI 路由 Skill 到 ~/.cursor/skills
+./scripts/login-official.sh      # 官方 MCP → 浏览器授权，看到 Successfully logged in
+./scripts/configure-lark-cli.sh  # 绑定同一 App
+./scripts/login-lark-cli.sh      # Lark CLI → 浏览器授权（token 存钥匙串）
+./scripts/install-lark-cli-skills.sh  # 安装 Agent Skills（可选但强烈推荐）
 ```
 
-`lark-doc` MCP：首次在 Cursor 里读写文档时，浏览器可能再弹一次（端口 9997）。
+`lark-doc` MCP：首次在 Cursor 里读写文档时可能再弹一次浏览器（端口 9997）。
 
-### 4.5 重启 Cursor
+### 6. 重启 Cursor 并验证
 
-**Settings → MCP**，确认 `lark-doc`、`lark-official` 均为 **绿色**。
-
-### 4.6 验证
+Settings → MCP → **`lark-doc`**、**`lark-official`** 均为绿色。
 
 ```bash
 ./scripts/verify-setup.sh
 export PATH=".node/bin:$PATH"
-./scripts/lark-cli.sh auth status    # user.available 应为 true
+./scripts/lark-cli.sh auth status   # user.available 应为 true
 ```
 
----
+### 7. 安装项目 Skill（Agent 自动选 MCP / CLI）
 
-## 五、目录结构速查
-
-```text
-cursor-feishu/
-├── setup.sh                 # 一键安装
-├── SOP.md                   # 本文件（与飞书 wiki 同步）
-├── .env                     # 凭证（勿提交 Git）
-├── scripts/
-│   ├── lark-cli.sh          # lark-cli 包装（自动带 Node PATH）
-│   ├── login-official.sh
-│   ├── login-lark-cli.sh
-│   └── verify-setup.sh
-├── .cursor/skills/feishu-cursor-integration/  # MCP vs CLI 路由
-└── feishu-sync/             # 本地文档镜像
-```
-
----
-
-## 六、Agent 怎么说？（不用记命令）
-
-直接说目标即可，例如：
-
-| 你说 | Agent 会用 |
-|------|-----------|
-| 读这个飞书 wiki 并总结 | MCP `lark-doc` |
-| 在文档末尾追加一段 | MCP `lark-doc` |
-| 查多维表格并新增一行 | MCP `lark-official` |
-| 把 xx 文档移到蓝麟下 | MCP `lark-official` |
-| **读文档里的竞品对比表** | **Lark CLI** fetch + sheets |
-| **改文档内表格某一格** | **Lark CLI** block/sheets |
-| 查明天日历 | Lark CLI |
-
-Agent 加载 Skill **`feishu-cursor-integration`** 后会自动路由；也可显式说：「按 feishu-cursor-integration skill 处理」。
-
----
-
-## 七、MCP vs Lark CLI 路由表（给 Agent / 人工排查）
-
-| 场景 | 首选 |
-|------|------|
-| URL 含 `/base/` | MCP lark-official |
-| 简单 Markdown 读写 | MCP lark-doc |
-| wiki 移动 / 搜索 | MCP lark-official |
-| 文档内 **嵌入 sheet** 或 block 级编辑 | Lark CLI |
-| 日历 / IM / 云盘 | Lark CLI |
-| MCP 只读到标题、无正文 | 改 Lark CLI（含 sheet 的文档） |
-
-**lark-cli 务必带 Node：**
+本仓库已含 `.cursor/skills/feishu-cursor-integration/`。  
+若 Cursor 未自动加载，将 skill 复制到个人目录：
 
 ```bash
-./scripts/lark-cli.sh docs +fetch --api-version v2 --doc "<wiki_url>" --detail full --doc-format xml
+mkdir -p ~/.cursor/skills
+cp -R .cursor/skills/feishu-cursor-integration ~/.cursor/skills/
+```
+
+重启 Cursor 后，Agent 处理飞书任务时会先读该 Skill 再选工具。
+
+---
+
+## 三、日常使用（不用记命令）
+
+直接对 Agent 说人话即可，例如：
+
+```
+读这个 wiki 并总结：https://xxx.feishu.cn/wiki/xxx
+把「任务」文档移到「蓝麟」下
+查这个多维表格所有记录：https://xxx.feishu.cn/base/xxx
+读竞品调研 wiki 里的表格，整理成 Markdown
+在文档末尾追加一段说明
+```
+
+Agent 会根据任务类型自动选 **MCP** 或 **Lark CLI**（见第四节）。
+
+---
+
+## 四、Agent 路由规则（MCP vs Lark CLI）
+
+> Skill 文件：仓库 `.cursor/skills/feishu-cursor-integration/SKILL.md`
+
+| 你的需求 | Agent 用什么 |
+|----------|-------------|
+| 读/写纯文本、Markdown 追加 | MCP `lark-doc` |
+| 多维表格 `/base/` | MCP `lark-official` |
+| 移动 wiki 节点 | MCP `lark-official` 或 `scripts/move-wiki-node.mjs` |
+| **文档内嵌入表格**（fetch 只有标题） | **Lark CLI**：`docs +fetch xml` → `sheets +csv-get` |
+| block_replace / 改单元格 / 复杂排版 | **Lark CLI** |
+| 日历 / 消息 / 云盘 | **Lark CLI** |
+
+**CLI 务必用包装脚本**（避免 `env: node: No such file`）：
+
+```bash
+./scripts/lark-cli.sh docs +fetch --api-version v2 --doc "<url>" --detail full --doc-format xml
 ./scripts/lark-cli.sh sheets +csv-get --spreadsheet-token "<token>" --sheet-id "<id>"
 ```
 
 ---
 
-## 八、常见问题
+## 五、授权与维护
+
+| 组件 | 新电脑要重做？ | 持久化 |
+|------|---------------|--------|
+| 飞书应用配置 | 否（云端） | 开发者后台 |
+| `.env` | 是（复制 App ID/Secret） | 本地文件 |
+| lark-official MCP OAuth | 是 | `~/.lark-mcp/` |
+| lark-cli OAuth | 是 | 系统钥匙串 |
+| lark-doc MCP | 首次用文档可能弹窗 | 内存（重启 Cursor 可能再授权） |
+
+**常见问题**
 
 | 现象 | 处理 |
 |------|------|
-| `env: node: No such file or directory` | 用 `./scripts/lark-cli.sh`，勿直接跑裸 `lark-cli` |
-| `cd cursor-feishu` 找不到目录 | 路径是 `~/cursorProject/cursor-feishu` 或你 clone 的位置 |
-| MCP 变红 | `./scripts/verify-setup.sh`，重新 OAuth |
-| OAuth 20028 | 检查飞书后台重定向 URL 三条是否齐全 |
-| 读文档只有标题 | 文档含嵌入表格 → 用 Lark CLI |
+| `env: node: No such file` | 用 `./scripts/lark-cli.sh`，不要裸跑 `lark-cli` |
+| MCP 变红 | `./setup.sh` → 重启 Cursor |
+| OAuth 20028 | 检查重定向 URL 是否配齐 3 条 |
+| 读文档只有标题 | 文档含嵌入 sheet → 走 Lark CLI |
+| 权限不足 | 后台补权限 → 发布 → 重新 OAuth |
 
 ---
 
-## 九、换电脑迁移清单
+## 六、目录与脚本速查
 
-- [ ] `git clone` 仓库
-- [ ] `./setup.sh`
-- [ ] 复制或重新填写 `.env`（**勿把 .env 提交 Git**）
-- [ ] `./scripts/login-official.sh`
-- [ ] `./scripts/configure-lark-cli.sh && ./scripts/login-lark-cli.sh`
-- [ ] `./scripts/install-lark-cli-skills.sh`
-- [ ] 重启 Cursor，MCP 绿色
-- [ ] `./scripts/verify-setup.sh` 通过
+```text
+cursor-feishu/
+├── setup.sh                 # 一键安装
+├── SOP.md                   # 本文（与飞书 wiki 同步）
+├── FEISHU_APP_CHECKLIST.md  # 飞书后台清单
+├── TEST_PROMPTS.md          # Agent 测试话术
+├── scripts/
+│   ├── lark-cli.sh          # CLI 包装（必用）
+│   ├── login-official.sh    # MCP OAuth
+│   ├── login-lark-cli.sh    # CLI OAuth
+│   ├── configure-lark-cli.sh
+│   ├── verify-setup.sh
+│   └── move-wiki-node.mjs
+└── .cursor/skills/feishu-cursor-integration/  # Agent 路由 Skill
+```
 
 ---
 
-## 十、相关链接
+## 七、验收清单（新电脑配置完成打勾）
 
-- GitHub：<GITHUB_REPO_URL>
-- 飞书后台：https://open.feishu.cn/app
-- 详细权限清单：仓库 `FEISHU_APP_CHECKLIST.md`
-- 测试用例：仓库 `TEST_PROMPTS.md`
+- [ ] `git clone` 成功，`./setup.sh` 无报错  
+- [ ] `.env` 已填真实 App ID / Secret  
+- [ ] 飞书后台 3 条重定向 URL + 权限已开  
+- [ ] `./scripts/login-official.sh` 成功  
+- [ ] `./scripts/login-lark-cli.sh` 成功，`auth status` 中 user 为 ready  
+- [ ] Cursor MCP 两个 server 绿色  
+- [ ] Agent 能读一篇 wiki 文档  
+- [ ] Agent 能用 lark-cli 读出嵌入 sheet 表格（竞品调研类文档）  
+
+---
+
+## 八、参考链接
+
+- 代码仓库：https://github.com/PLACEHOLDER/cursor-feishu  
+- 飞书开放平台：https://open.feishu.cn/app  
+- Lark CLI 官方：https://feishu-cli.com/  
+- 本 SOP 飞书 wiki：https://rcnimfkpyebd.feishu.cn/wiki/DiOlwipeiiWKCgkmWOwcNKOAnGf  
